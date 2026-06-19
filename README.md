@@ -40,6 +40,7 @@ El archivo `railway.json` ejecuta `npm run db:push && npm run db:seed` antes de 
 Esta API puede usarse como Action de un GPT personalizado.
 
 - Guia para subir como Knowledge/Source del GPT: `docs/chatgpt-source-usage-guide.md`
+- Guia de comandos para el aprendiz: `docs/learner-command-guide.md`
 - Schema OpenAPI: `https://binancelearning-production.up.railway.app/openapi.json`
 - Authentication: API Key
 - Auth type: Custom header
