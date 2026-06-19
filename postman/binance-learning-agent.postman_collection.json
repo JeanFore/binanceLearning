@@ -8,7 +8,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:3000",
+      "value": "https://binancelearning-production.up.railway.app",
       "type": "string"
     },
     {

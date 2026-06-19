@@ -59,7 +59,7 @@ Importa `postman/binance-learning-agent.postman_collection.json`.
 
 Variables de la coleccion:
 
-- `baseUrl`: `http://localhost:3000`
+- `baseUrl`: `https://binancelearning-production.up.railway.app`
 - `agentApiKey`: `dev-agent-key`
 - `learnerId`: se autocompleta al consultar aprendices o contexto.
 - `courseSlug`: se autocompleta desde catalogo.
