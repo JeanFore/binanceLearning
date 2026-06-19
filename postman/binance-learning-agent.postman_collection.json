@@ -27,6 +27,11 @@
       "type": "string"
     },
     {
+      "key": "moduleId",
+      "value": "",
+      "type": "string"
+    },
+    {
       "key": "lessonId",
       "value": "binance-arbitraje-fundamentos-1-lesson-1",
       "type": "string"
@@ -119,10 +124,15 @@
                   "",
                   "const courses = pm.response.json().courses || [];",
                   "const firstCourse = courses[0];",
+                  "const firstModule = firstCourse?.modules?.[0];",
                   "const firstLesson = firstCourse?.modules?.flatMap((module) => module.lessons || [])?.[0];",
                   "",
                   "if (firstCourse?.slug) {",
                   "  pm.collectionVariables.set('courseSlug', firstCourse.slug);",
+                  "}",
+                  "",
+                  "if (firstModule?.id) {",
+                  "  pm.collectionVariables.set('moduleId', firstModule.id);",
                   "}",
                   "",
                   "if (firstLesson?.id) {",
@@ -212,6 +222,19 @@
           ]
         },
         {
+          "name": "Detalle de clase actual",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "description": "Consulta una clase especifica, incluyendo modulo, curso y borradores recientes.",
+            "url": {
+              "raw": "{{baseUrl}}/api/agent/lessons/{{lessonId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "agent", "lessons", "{{lessonId}}"]
+            }
+          }
+        },
+        {
           "name": "Progreso del aprendiz",
           "request": {
             "method": "GET",
@@ -286,6 +309,148 @@
     {
       "name": "02 - Escrituras opcionales del agente",
       "item": [
+        {
+          "name": "Crear o actualizar curso",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "Permite a ChatGPT crear una nueva ruta de aprendizaje o actualizar una existente por slug.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slug\": \"{{courseSlug}}\",\n  \"title\": \"Binance Learning: arbitraje controlado\",\n  \"description\": \"Ruta practica para estudiar arbitraje cripto con enfoque educativo, gestion de riesgo y simulacion antes de operar.\",\n  \"goal\": \"Construir criterio para detectar, documentar y evaluar oportunidades de arbitraje sin automatizar dinero real.\",\n  \"riskNotice\": \"Contenido educativo. No es recomendacion financiera. El arbitraje real puede perder dinero por comisiones, slippage, latencia, retiros pausados, liquidez baja y fallos operativos.\",\n  \"sortOrder\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agent/courses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "agent", "courses"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('course saved', function () {",
+                  "  pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "const course = pm.response.json().course;",
+                  "if (course?.slug) {",
+                  "  pm.collectionVariables.set('courseSlug', course.slug);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear modulo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "Permite a ChatGPT ampliar el temario creando un modulo nuevo dentro del curso.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseSlug\": \"{{courseSlug}}\",\n  \"title\": \"Modulo generado por ChatGPT\",\n  \"summary\": \"Modulo de aprendizaje creado para profundizar un tema detectado durante la sesion.\",\n  \"sortOrder\": 99\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agent/modules",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "agent", "modules"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('module created', function () {",
+                  "  pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "const module = pm.response.json().module;",
+                  "if (module?.id) {",
+                  "  pm.collectionVariables.set('moduleId', module.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear clase teorica o practica",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "Permite a ChatGPT crear una clase nueva bajo un modulo existente. type acepta THEORY o PRACTICE.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moduleId\": \"{{moduleId}}\",\n  \"title\": \"Clase generada por ChatGPT\",\n  \"type\": \"THEORY\",\n  \"difficulty\": \"BEGINNER\",\n  \"durationMinutes\": 20,\n  \"objective\": \"Comprender un concepto especifico antes de avanzar a ejercicios practicos.\",\n  \"content\": \"Esta clase fue creada por ChatGPT para reforzar un vacio detectado durante el aprendizaje. Debe explicar el concepto, mostrar un ejemplo sencillo y cerrar con una verificacion de entendimiento antes de pasar a practica.\",\n  \"practicePrompt\": null,\n  \"successCriteria\": \"El aprendiz explica el concepto con sus propias palabras y reconoce al menos un riesgo operativo.\",\n  \"resources\": [\n    \"Mantener el ejercicio en simulacion.\",\n    \"Registrar supuestos y limitaciones antes de calcular resultados.\"\n  ],\n  \"sortOrder\": 99\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agent/lessons",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "agent", "lessons"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('lesson created', function () {",
+                  "  pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "const lesson = pm.response.json().lesson;",
+                  "if (lesson?.id) {",
+                  "  pm.collectionVariables.set('lessonId', lesson.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar clase",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "Permite a ChatGPT mejorar una clase existente sin crear una nueva.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Contenido actualizado por ChatGPT. Mantiene el enfoque educativo, evita recomendaciones financieras y agrega criterios verificables para que el aprendiz pueda demostrar entendimiento antes de avanzar.\",\n  \"successCriteria\": \"El aprendiz resume la clase, identifica un riesgo y propone una practica simulada.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agent/lessons/{{lessonId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "agent", "lessons", "{{lessonId}}"]
+            }
+          }
+        },
         {
           "name": "Crear aprendiz",
           "request": {

@@ -35,6 +35,32 @@ Si el Postgres esta en otro proyecto o quieres conectarte desde tu maquina local
 
 El archivo `railway.json` ejecuta `npm run db:push && npm run db:seed` antes de iniciar la app para crear tablas y cargar el curso base.
 
+## ChatGPT Action
+
+Esta API puede usarse como Action de un GPT personalizado.
+
+- Schema OpenAPI: `https://binancelearning-production.up.railway.app/openapi.json`
+- Authentication: API Key
+- Auth type: Custom header
+- Header name: `x-agent-api-key`
+- Header value: el mismo valor de `AGENT_API_KEY` en Railway.
+
+Endpoint principal de consulta:
+
+- `getAgentContext`: lee aprendiz, avance, siguientes clases, catalogo, notas y borradores.
+
+Endpoints de escritura disponibles para ChatGPT:
+
+- `saveProgress`: guarda avance de clase.
+- `createNote`: guarda notas de sesion o dudas.
+- `createContentDraft`: crea contenido complementario para una clase.
+- `upsertCourse`: crea o actualiza una ruta de aprendizaje.
+- `createModule`: crea modulos nuevos.
+- `createLesson`: crea clases teoricas o practicas.
+- `updateLesson`: mejora contenido de una clase existente.
+
+Instruccion recomendada para el GPT: consultar `getAgentContext` antes de escribir, mantener todo en modo educativo/simulacion, no recomendar operaciones reales y usar escrituras solo para crear contenido de aprendizaje, notas o progreso.
+
 ## Scripts
 
 - `npm run dev`: servidor Next.
@@ -74,6 +100,7 @@ Variables de la coleccion:
 - `agentApiKey`: `dev-agent-key`
 - `learnerId`: se autocompleta al consultar aprendices o contexto.
 - `courseSlug`: se autocompleta desde catalogo.
+- `moduleId`: se autocompleta desde catalogo o al crear un modulo.
 - `lessonId`: `binance-arbitraje-fundamentos-1-lesson-1`
 - `contentDraftId`: se autocompleta al crear contenido complementario.
 

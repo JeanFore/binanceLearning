@@ -1,0 +1,459 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Binance Learning Agent Source API",
+    "version": "1.0.0",
+    "description": "API para que ChatGPT consulte el source de aprendizaje de arbitraje educativo en Binance y pueda crear progreso, notas, borradores, cursos, modulos y clases."
+  },
+  "servers": [
+    {
+      "url": "https://binancelearning-production.up.railway.app",
+      "description": "Railway production"
+    }
+  ],
+  "security": [
+    {
+      "AgentApiKey": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "AgentApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-agent-api-key",
+        "description": "API key configured in AGENT_API_KEY."
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      },
+      "LearnerInput": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "minLength": 2 },
+          "email": { "type": "string", "format": "email" }
+        }
+      },
+      "CourseInput": {
+        "type": "object",
+        "required": ["slug", "title", "description", "goal", "riskNotice"],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "description": "URL-safe course identifier, e.g. binance-arbitraje-fundamentos."
+          },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "goal": { "type": "string" },
+          "riskNotice": { "type": "string" },
+          "sortOrder": { "type": "integer", "default": 0 }
+        }
+      },
+      "ModuleInput": {
+        "type": "object",
+        "required": ["title", "summary"],
+        "properties": {
+          "courseId": { "type": "string" },
+          "courseSlug": { "type": "string" },
+          "title": { "type": "string" },
+          "summary": { "type": "string" },
+          "sortOrder": { "type": "integer", "default": 0 }
+        },
+        "description": "Provide either courseId or courseSlug."
+      },
+      "LessonInput": {
+        "type": "object",
+        "required": ["moduleId", "title", "objective", "content"],
+        "properties": {
+          "moduleId": { "type": "string" },
+          "title": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["THEORY", "PRACTICE"],
+            "default": "THEORY"
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": ["BEGINNER", "INTERMEDIATE", "ADVANCED"],
+            "default": "BEGINNER"
+          },
+          "durationMinutes": { "type": "integer", "minimum": 5, "maximum": 240, "default": 20 },
+          "objective": { "type": "string" },
+          "content": { "type": "string" },
+          "practicePrompt": { "type": "string", "nullable": true },
+          "successCriteria": { "type": "string", "nullable": true },
+          "resources": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "sortOrder": { "type": "integer", "default": 0 }
+        }
+      },
+      "LessonUpdateInput": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "type": { "type": "string", "enum": ["THEORY", "PRACTICE"] },
+          "difficulty": { "type": "string", "enum": ["BEGINNER", "INTERMEDIATE", "ADVANCED"] },
+          "durationMinutes": { "type": "integer", "minimum": 5, "maximum": 240 },
+          "objective": { "type": "string" },
+          "content": { "type": "string" },
+          "practicePrompt": { "type": "string", "nullable": true },
+          "successCriteria": { "type": "string", "nullable": true },
+          "resources": {
+            "type": "array",
+            "nullable": true,
+            "items": { "type": "string" }
+          },
+          "sortOrder": { "type": "integer" }
+        }
+      },
+      "ProgressInput": {
+        "type": "object",
+        "required": ["lessonId", "status"],
+        "properties": {
+          "learnerId": { "type": "string" },
+          "lessonId": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["NOT_STARTED", "IN_PROGRESS", "COMPLETED", "BLOCKED"]
+          },
+          "score": { "type": "integer", "minimum": 0, "maximum": 100, "nullable": true },
+          "reflection": { "type": "string", "nullable": true },
+          "lastArtifact": { "type": "string", "nullable": true }
+        }
+      },
+      "ContentDraftInput": {
+        "type": "object",
+        "required": ["lessonId", "title", "body"],
+        "properties": {
+          "lessonId": { "type": "string" },
+          "title": { "type": "string" },
+          "body": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["DRAFT", "READY", "ARCHIVED"],
+            "default": "DRAFT"
+          },
+          "createdBy": { "type": "string", "default": "agent" }
+        }
+      },
+      "ContentDraftUpdateInput": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "body": { "type": "string" },
+          "status": { "type": "string", "enum": ["DRAFT", "READY", "ARCHIVED"] }
+        }
+      },
+      "NoteInput": {
+        "type": "object",
+        "required": ["title", "content"],
+        "properties": {
+          "learnerId": { "type": "string", "nullable": true },
+          "scope": { "type": "string", "default": "GENERAL" },
+          "title": { "type": "string" },
+          "content": { "type": "string" },
+          "createdBy": { "type": "string", "default": "agent" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Check API and database health",
+        "security": [],
+        "responses": {
+          "200": { "description": "API is healthy" },
+          "500": { "description": "Database unavailable" }
+        }
+      }
+    },
+    "/api/catalog": {
+      "get": {
+        "operationId": "getCatalog",
+        "summary": "Get full learning catalog",
+        "description": "Returns courses, modules and lessons.",
+        "responses": {
+          "200": { "description": "Catalog response" }
+        }
+      }
+    },
+    "/api/learners": {
+      "get": {
+        "operationId": "listLearners",
+        "summary": "List learners",
+        "responses": {
+          "200": { "description": "Learner list" }
+        }
+      },
+      "post": {
+        "operationId": "createLearner",
+        "summary": "Create a learner",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LearnerInput" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Learner created" },
+          "400": { "description": "Validation error" }
+        }
+      }
+    },
+    "/api/agent/context": {
+      "get": {
+        "operationId": "getAgentContext",
+        "summary": "Get complete ChatGPT source context",
+        "description": "Recommended first query for ChatGPT. Returns learner, stats, next lessons, catalog, notes and recent drafts.",
+        "parameters": [
+          {
+            "name": "learnerId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Agent context" }
+        }
+      }
+    },
+    "/api/agent/courses": {
+      "post": {
+        "operationId": "upsertCourse",
+        "summary": "Create or update a course",
+        "description": "Allows ChatGPT to create a new learning route or update an existing route by slug.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CourseInput" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Course created or updated" }
+        }
+      }
+    },
+    "/api/agent/modules": {
+      "post": {
+        "operationId": "createModule",
+        "summary": "Create a course module",
+        "description": "Allows ChatGPT to add a new module to a course.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ModuleInput" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Module created" },
+          "404": { "description": "Course not found" }
+        }
+      }
+    },
+    "/api/agent/lessons": {
+      "post": {
+        "operationId": "createLesson",
+        "summary": "Create a theory or practice lesson",
+        "description": "Allows ChatGPT to write new lesson content under an existing module.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LessonInput" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Lesson created" },
+          "404": { "description": "Module not found" }
+        }
+      }
+    },
+    "/api/agent/lessons/{id}": {
+      "get": {
+        "operationId": "getLesson",
+        "summary": "Get a lesson with drafts",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Lesson detail" },
+          "404": { "description": "Lesson not found" }
+        }
+      },
+      "patch": {
+        "operationId": "updateLesson",
+        "summary": "Update a lesson",
+        "description": "Allows ChatGPT to improve lesson title, theory, practice prompt, criteria or resources.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LessonUpdateInput" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Lesson updated" },
+          "404": { "description": "Lesson not found" }
+        }
+      }
+    },
+    "/api/agent/progress": {
+      "get": {
+        "operationId": "getProgress",
+        "summary": "Get learner progress",
+        "parameters": [
+          {
+            "name": "learnerId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Learner progress" }
+        }
+      },
+      "post": {
+        "operationId": "saveProgress",
+        "summary": "Create or update lesson progress",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ProgressInput" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Progress saved" },
+          "404": { "description": "Lesson not found" }
+        }
+      }
+    },
+    "/api/agent/notes": {
+      "get": {
+        "operationId": "getNotes",
+        "summary": "Get agent notes",
+        "parameters": [
+          {
+            "name": "learnerId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Notes response" }
+        }
+      },
+      "post": {
+        "operationId": "createNote",
+        "summary": "Create an agent note",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/NoteInput" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Note created" }
+        }
+      }
+    },
+    "/api/agent/content": {
+      "get": {
+        "operationId": "getContentDrafts",
+        "summary": "Get generated content drafts",
+        "parameters": [
+          {
+            "name": "lessonId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Draft list" }
+        }
+      },
+      "post": {
+        "operationId": "createContentDraft",
+        "summary": "Create generated content draft",
+        "description": "Creates supplemental generated content for a lesson without replacing the canonical lesson.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ContentDraftInput" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Draft created" },
+          "404": { "description": "Lesson not found" }
+        }
+      }
+    },
+    "/api/agent/content/{id}": {
+      "patch": {
+        "operationId": "updateContentDraft",
+        "summary": "Update generated content draft",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ContentDraftUpdateInput" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Draft updated" },
+          "404": { "description": "Draft not found" }
+        }
+      }
+    }
+  }
+}

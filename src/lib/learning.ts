@@ -9,6 +9,8 @@ export const PROGRESS_STATUSES = [
 
 export const LESSON_TYPES = ["THEORY", "PRACTICE"] as const;
 
+export const LESSON_DIFFICULTIES = ["BEGINNER", "INTERMEDIATE", "ADVANCED"] as const;
+
 export const DRAFT_STATUSES = ["DRAFT", "READY", "ARCHIVED"] as const;
 
 export async function getLearnerOrDefault(learnerId?: string | null) {
