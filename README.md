@@ -24,6 +24,17 @@ AGENT_API_KEY="dev-agent-key"
 
 Si usas un Postgres externo, reemplaza `DATABASE_URL` y ejecuta `npm run setup`.
 
+## Railway
+
+En el servicio web de Railway configura:
+
+- `DATABASE_URL`: referencia al Postgres del mismo proyecto, por ejemplo `${{Postgres.DATABASE_URL}}`.
+- `AGENT_API_KEY`: la clave que usara Postman o el agente.
+
+Si el Postgres esta en otro proyecto o quieres conectarte desde tu maquina local, usa la URL publica de Railway (`DATABASE_PUBLIC_URL`) en lugar de la privada interna.
+
+El archivo `railway.json` ejecuta `npm run db:push && npm run db:seed` antes de iniciar la app para crear tablas y cargar el curso base.
+
 ## Scripts
 
 - `npm run dev`: servidor Next.
