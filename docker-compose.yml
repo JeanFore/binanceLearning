@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: binance-learning-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: binance_learning
+      POSTGRES_USER: binance
+      POSTGRES_PASSWORD: binance
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U binance -d binance_learning"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:

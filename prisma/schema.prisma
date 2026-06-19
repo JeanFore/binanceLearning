@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Learner {
+  id        String           @id @default(cuid())
+  name      String
+  email     String?          @unique
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  progress  LessonProgress[]
+  notes     AgentNote[]
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  goal        String
+  riskNotice  String
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  modules     Module[]
+}
+
+model Module {
+  id        String   @id @default(cuid())
+  courseId  String
+  title     String
+  summary   String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons   Lesson[]
+
+  @@index([courseId])
+}
+
+model Lesson {
+  id              String            @id @default(cuid())
+  moduleId        String
+  title           String
+  type            String            @default("THEORY")
+  difficulty      String            @default("BEGINNER")
+  durationMinutes Int               @default(20)
+  objective       String
+  content         String
+  practicePrompt  String?
+  successCriteria String?
+  resources       String?
+  sortOrder       Int               @default(0)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  module          Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress        LessonProgress[]
+  contentDrafts   ContentDraft[]
+
+  @@index([moduleId])
+}
+
+model LessonProgress {
+  id           String    @id @default(cuid())
+  learnerId    String
+  lessonId     String
+  status       String    @default("NOT_STARTED")
+  score        Int?
+  reflection   String?
+  lastArtifact String?
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  learner      Learner   @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  lesson       Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([learnerId, lessonId])
+  @@index([lessonId])
+}
+
+model ContentDraft {
+  id        String   @id @default(cuid())
+  lessonId  String
+  title     String
+  body      String
+  status    String   @default("DRAFT")
+  createdBy String   @default("agent")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([lessonId])
+}
+
+model AgentNote {
+  id        String   @id @default(cuid())
+  learnerId String?
+  scope     String   @default("GENERAL")
+  title     String
+  content   String
+  createdBy String   @default("agent")
+  createdAt DateTime @default(now())
+  learner   Learner? @relation(fields: [learnerId], references: [id], onDelete: SetNull)
+
+  @@index([learnerId])
+}

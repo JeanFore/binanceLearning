@@ -1,0 +1,438 @@
+{
+  "info": {
+    "_postman_id": "861bbd2a-51a8-4f05-8f21-5ac758a2f2d2",
+    "name": "Binance Learning Agent Source API",
+    "description": "Coleccion para que un agente consulte el source de aprendizaje: estado, catalogo, contexto, progreso, notas y contenido. Incluye escrituras opcionales para registrar avance o contenido educativo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "agentApiKey",
+      "value": "dev-agent-key",
+      "type": "string"
+    },
+    {
+      "key": "learnerId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "courseSlug",
+      "value": "binance-arbitraje-fundamentos",
+      "type": "string"
+    },
+    {
+      "key": "lessonId",
+      "value": "binance-arbitraje-fundamentos-1-lesson-1",
+      "type": "string"
+    },
+    {
+      "key": "contentDraftId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "x-agent-api-key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{agentApiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "00 - Estado",
+      "item": [
+        {
+          "name": "Health de API y base de datos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "description": "Valida que la API responde y que Prisma puede conectarse a la base de datos.",
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('API healthy', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().status).to.eql('ok');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Consultas source del agente",
+      "item": [
+        {
+          "name": "Catalogo completo de cursos, modulos y clases",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "description": "Fuente principal del temario. El script guarda courseSlug y lessonId de la primera clase disponible.",
+            "url": {
+              "raw": "{{baseUrl}}/api/catalog",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "catalog"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('catalog has courses', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.courses).to.be.an('array').that.is.not.empty;",
+                  "});",
+                  "",
+                  "const courses = pm.response.json().courses || [];",
+                  "const firstCourse = courses[0];",
+                  "const firstLesson = firstCourse?.modules?.flatMap((module) => module.lessons || [])?.[0];",
+                  "",
+                  "if (firstCourse?.slug) {",
+                  "  pm.collectionVariables.set('courseSlug', firstCourse.slug);",
+                  "}",
+                  "",
+                  "if (firstLesson?.id) {",
+                  "  pm.collectionVariables.set('lessonId', firstLesson.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Aprendices disponibles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "description": "Consulta los aprendices. El script guarda learnerId con el primer aprendiz encontrado.",
+            "url": {
+              "raw": "{{baseUrl}}/api/learners",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "learners"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('learners response is valid', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().learners).to.be.an('array');",
+                  "});",
+                  "",
+                  "const firstLearner = pm.response.json().learners?.[0];",
+                  "if (firstLearner?.id) {",
+                  "  pm.collectionVariables.set('learnerId', firstLearner.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Contexto completo para decidir siguiente accion",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "description": "Endpoint recomendado para el agente. Devuelve aprendiz, estadisticas, proximas clases, curso, notas y borradores recientes.",
+            "url": {
+              "raw": "{{baseUrl}}/api/agent/context?learnerId={{learnerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "agent", "context"],
+              "query": [
+                {
+                  "key": "learnerId",
+                  "value": "{{learnerId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('agent context is valid', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.learner).to.be.an('object');",
+                  "  pm.expect(json.stats).to.be.an('object');",
+                  "  pm.expect(json.courses).to.be.an('array');",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "if (json.learner?.id) {",
+                  "  pm.collectionVariables.set('learnerId', json.learner.id);",
+                  "}",
+                  "",
+                  "const nextLesson = json.nextLessons?.[0];",
+                  "if (nextLesson?.id) {",
+                  "  pm.collectionVariables.set('lessonId', nextLesson.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Progreso del aprendiz",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "description": "Consulta avance por clase para el aprendiz actual. Si learnerId esta vacio, la API usa el aprendiz seed por defecto.",
+            "url": {
+              "raw": "{{baseUrl}}/api/agent/progress?learnerId={{learnerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "agent", "progress"],
+              "query": [
+                {
+                  "key": "learnerId",
+                  "value": "{{learnerId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Notas del agente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "description": "Consulta notas globales y notas asociadas al aprendiz actual.",
+            "url": {
+              "raw": "{{baseUrl}}/api/agent/notes?learnerId={{learnerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "agent", "notes"],
+              "query": [
+                {
+                  "key": "learnerId",
+                  "value": "{{learnerId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Contenido generado por leccion",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "description": "Consulta borradores o material complementario generado para la clase actual.",
+            "url": {
+              "raw": "{{baseUrl}}/api/agent/content?lessonId={{lessonId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "agent", "content"],
+              "query": [
+                {
+                  "key": "lessonId",
+                  "value": "{{lessonId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Todo el contenido generado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "description": "Consulta todos los borradores del agente, sin filtrar por clase.",
+            "url": {
+              "raw": "{{baseUrl}}/api/agent/content",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "agent", "content"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Escrituras opcionales del agente",
+      "item": [
+        {
+          "name": "Crear aprendiz",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "Crea un aprendiz nuevo y guarda learnerId en variables de la coleccion.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Aprendiz QA\",\n  \"email\": \"aprendiz.qa@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/learners",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "learners"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('learner created', function () {",
+                  "  pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "const learner = pm.response.json().learner;",
+                  "if (learner?.id) {",
+                  "  pm.collectionVariables.set('learnerId', learner.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Guardar avance de clase",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "Crea o actualiza el avance de una clase. Estados validos: NOT_STARTED, IN_PROGRESS, COMPLETED, BLOCKED.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"learnerId\": \"{{learnerId}}\",\n  \"lessonId\": \"{{lessonId}}\",\n  \"status\": \"COMPLETED\",\n  \"score\": 90,\n  \"reflection\": \"El spread bruto no es suficiente; hay que descontar comisiones, slippage y riesgo operativo.\",\n  \"lastArtifact\": \"Checklist inicial de costos netos documentado.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agent/progress",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "agent", "progress"]
+            }
+          }
+        },
+        {
+          "name": "Crear nota del agente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "Guarda una nota de sesion, duda, regla o hallazgo para que el agente la consulte luego.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"learnerId\": \"{{learnerId}}\",\n  \"scope\": \"SESSION\",\n  \"title\": \"Duda detectada\",\n  \"content\": \"El aprendiz debe practicar precio promedio ponderado antes de pasar a backtesting.\",\n  \"createdBy\": \"agent\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agent/notes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "agent", "notes"]
+            }
+          }
+        },
+        {
+          "name": "Crear contenido complementario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "Crea un borrador de material complementario para una clase y guarda contentDraftId.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lessonId\": \"{{lessonId}}\",\n  \"title\": \"Ejemplo adicional de margen neto\",\n  \"body\": \"Comprar a 100 y vender a 100.30 no implica ganancia si las dos comisiones y el slippage consumen mas que el diferencial disponible.\",\n  \"status\": \"DRAFT\",\n  \"createdBy\": \"agent\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agent/content",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "agent", "content"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('content draft created', function () {",
+                  "  pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "const draft = pm.response.json().draft;",
+                  "if (draft?.id) {",
+                  "  pm.collectionVariables.set('contentDraftId', draft.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar contenido complementario",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "Actualiza un borrador existente. Requiere contentDraftId generado por Crear contenido complementario.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"READY\",\n  \"body\": \"Comprar a 100 y vender a 100.30 no implica ganancia si las dos comisiones y el slippage consumen mas que el diferencial disponible. El agente debe pedir calculo neto antes de sugerir la siguiente practica.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agent/content/{{contentDraftId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "agent", "content", "{{contentDraftId}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
