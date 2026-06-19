@@ -1,5 +1,5 @@
 {
-  "openapi": "3.0.3",
+  "openapi": "3.1.0",
   "info": {
     "title": "Binance Learning Agent Source API",
     "version": "1.0.0",
@@ -87,8 +87,8 @@
           "durationMinutes": { "type": "integer", "minimum": 5, "maximum": 240, "default": 20 },
           "objective": { "type": "string" },
           "content": { "type": "string" },
-          "practicePrompt": { "type": "string", "nullable": true },
-          "successCriteria": { "type": "string", "nullable": true },
+          "practicePrompt": { "type": ["string", "null"] },
+          "successCriteria": { "type": ["string", "null"] },
           "resources": {
             "type": "array",
             "items": { "type": "string" }
@@ -105,11 +105,10 @@
           "durationMinutes": { "type": "integer", "minimum": 5, "maximum": 240 },
           "objective": { "type": "string" },
           "content": { "type": "string" },
-          "practicePrompt": { "type": "string", "nullable": true },
-          "successCriteria": { "type": "string", "nullable": true },
+          "practicePrompt": { "type": ["string", "null"] },
+          "successCriteria": { "type": ["string", "null"] },
           "resources": {
-            "type": "array",
-            "nullable": true,
+            "type": ["array", "null"],
             "items": { "type": "string" }
           },
           "sortOrder": { "type": "integer" }
@@ -125,9 +124,9 @@
             "type": "string",
             "enum": ["NOT_STARTED", "IN_PROGRESS", "COMPLETED", "BLOCKED"]
           },
-          "score": { "type": "integer", "minimum": 0, "maximum": 100, "nullable": true },
-          "reflection": { "type": "string", "nullable": true },
-          "lastArtifact": { "type": "string", "nullable": true }
+          "score": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+          "reflection": { "type": ["string", "null"] },
+          "lastArtifact": { "type": ["string", "null"] }
         }
       },
       "ContentDraftInput": {
@@ -157,7 +156,7 @@
         "type": "object",
         "required": ["title", "content"],
         "properties": {
-          "learnerId": { "type": "string", "nullable": true },
+          "learnerId": { "type": ["string", "null"] },
           "scope": { "type": "string", "default": "GENERAL" },
           "title": { "type": "string" },
           "content": { "type": "string" },
